@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+<title>WattLane — EV Charging App</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--g:#1D9E75;--gd:#0F6E56;--gl:#E1F5EE;--b:#185FA5;--bl:#E6F1FB;--am:#EF9F27;--al:#FAEEDA;--rd:#E24B4A;--rl:#FCEBEB;--bg:#f8f9fa;--sr:#fff;--br:#e5e7eb;--tx:#111827;--mt:#6b7280;--ra:12px;--rs:8px}
+body{font-family:'Inter',sans-serif;background:#000;color:var(--tx);display:flex;justify-content:center;align-items:flex-start;min-height:100vh;min-height:100dvh}
+.phone{width:100%;max-width:390px;height:100vh;height:100dvh;background:var(--sr);display:flex;flex-direction:column;overflow:hidden;position:relative}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 15px 9px;border-bottom:1px solid var(--br);background:var(--sr);z-index:1001;flex-shrink:0}
+.logo{font-size:21px;font-weight:700;letter-spacing:-.5px}.logo span{color:var(--g)}
+.tr{display:flex;align-items:center;gap:7px}
+.lp{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mt);background:var(--bg);border:1px solid var(--br);border-radius:20px;padding:5px 11px;cursor:pointer;transition:.2s;white-space:nowrap}
+.lp.ok{color:var(--g);border-color:var(--g);background:var(--gl)}
+.bp{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;background:var(--bg);border:1px solid var(--br);border-radius:20px;padding:5px 11px;cursor:pointer}
+.bi{width:22px;height:12px;border:2px solid var(--g);border-radius:3px;position:relative}
+.bi::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:3px;height:6px;background:var(--g);border-radius:0 2px 2px 0}
+.bf{height:100%;border-radius:1px;background:var(--g);transition:width .3s}
+.nav{display:flex;border-top:1px solid var(--br);background:var(--sr);flex-shrink:0;z-index:1001}
+.nb{flex:1;padding:9px 2px 7px;border:none;background:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--mt);font-size:9px;font-weight:600;transition:color .2s;font-family:inherit}
+.nb.active{color:var(--g)}.nb i{font-size:19px}
+.screen{flex:1;overflow-y:auto;display:none;flex-direction:column;min-height:0}
+.screen.active{display:flex}
+.pad{padding:15px;overflow-y:auto;flex:1}
+.sl{font-size:11px;color:var(--mt);font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+/* MAP */
+.mw{flex-shrink:0;height:240px;position:relative;z-index:0}
+#lmap{width:100%;height:100%}
+.leaflet-container{font-family:'Inter',sans-serif!important}
+.ww-pin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+.ww-pin-lbl{transform:rotate(45deg);font-size:9px;font-weight:700;color:#fff;line-height:1}
+.ww-popup{font-family:'Inter',sans-serif;min-width:200px;padding:2px}
+.ww-popup-name{font-weight:700;font-size:13px;margin-bottom:3px;color:#111827}
+.ww-popup-sub{font-size:12px;color:#6b7280;margin-bottom:7px}
+.ww-popup-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.ww-popup-tag{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}
+.ww-popup-meta{font-size:12px;margin-bottom:3px;color:#111827}
+.ww-popup-wait{font-size:12px;color:#6b7280;margin-bottom:9px}
+.ww-popup-btn{width:100%;padding:7px;border-radius:8px;background:#1D9E75;border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.chips{display:flex;gap:7px;padding:9px 13px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;border-bottom:1px solid var(--br)}
+.chips::-webkit-scrollbar{display:none}
+.chip{padding:5px 13px;border-radius:20px;border:1px solid var(--br);font-size:12px;cursor:pointer;white-space:nowrap;background:var(--sr);color:var(--mt);transition:.15s;flex-shrink:0;font-family:inherit;font-weight:500}
+.chip.on{background:var(--g);border-color:var(--g);color:#fff}
+.slist{flex:1;padding:10px 13px 13px;overflow-y:auto}
+.sc{background:var(--sr);border:1px solid var(--br);border-radius:var(--ra);padding:11px 13px;margin-bottom:7px;cursor:pointer;transition:.15s}
+.sc:hover{border-color:#9FE1CB}.sc.sel{border-color:var(--g);border-width:1.5px}
+.st{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.sn{font-size:13px;font-weight:600}.sd{font-size:12px;color:var(--mt)}
+.tgs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:6px}
+.tg{font-size:11px;padding:2px 8px;border-radius:20px;background:var(--bg);color:var(--mt);font-weight:500}
+.tg.g{background:var(--gl);color:var(--gd)}.tg.a{background:var(--al);color:#854F0B}
+.tg.r{background:var(--rl);color:#A32D2D}.tg.b{background:var(--bl);color:var(--b);font-weight:700}
+.tg.nr{background:var(--rl);color:#A32D2D;font-weight:700}
+.sb{display:flex;justify-content:space-between;align-items:center}
+.sp{font-size:12px;color:var(--mt)}.sa{display:flex;gap:6px}
+.bs{font-size:12px;padding:5px 11px;border-radius:20px;border:1px solid var(--g);color:var(--g);background:none;cursor:pointer;font-family:inherit;font-weight:500;white-space:nowrap;transition:.15s}
+.bs.p{background:var(--g);color:#fff}
+/* RADAR */
+.rh{background:var(--bg);border-radius:var(--ra);padding:15px;margin-bottom:11px;border:1px solid var(--br)}
+.rht{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+.rb{font-size:30px;font-weight:700;color:var(--g)}
+.rr2{text-align:right}.rk{font-size:22px;font-weight:700;color:var(--g)}.rv{font-size:11px;color:var(--mt);margin-top:2px}
+.rtw{position:relative;height:46px;margin-bottom:4px}
+.rtb{position:absolute;top:18px;left:0;right:0;height:8px;background:var(--br);border-radius:4px}
+.rtf{position:absolute;top:18px;left:0;height:8px;border-radius:4px;background:var(--g);transition:width .3s}
+.rtt{position:absolute;top:2px;font-size:12px;font-weight:700;color:var(--g);transform:translateX(-50%);transition:left .3s;white-space:nowrap}
+.rte{display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-bottom:8px}
+.saf{display:flex;align-items:flex-start;gap:9px;padding:11px 13px;border-radius:var(--rs);margin-bottom:11px;border:1px solid}
+.saf.ok{background:var(--gl);border-color:#5DCAA5}
+.saf.wn{background:var(--al);border-color:var(--am)}
+.saf.cr{background:var(--rl);border-color:var(--rd)}
+.saf i{font-size:17px;flex-shrink:0;margin-top:1px}
+.saf.ok i{color:var(--gd)}.saf.wn i{color:#854F0B}.saf.cr i{color:#A32D2D}
+.sat{font-size:13px;line-height:1.5}
+.nfg{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
+.nfc{border-radius:var(--ra);padding:13px;border:1.5px solid}
+.nfc.n{border-color:var(--g);background:#f0fdf8}.nfc.f{border-color:var(--b);background:#f0f7ff}
+.nfl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.nfc.n .nfl{color:var(--g)}.nfc.f .nfl{color:var(--b)}
+.nfn{font-size:12px;font-weight:600;margin-bottom:3px;line-height:1.3}
+.nfk{font-size:22px;font-weight:700;margin-bottom:2px}
+.nfc.n .nfk{color:var(--g)}.nfc.f .nfk{color:var(--b)}
+.nfm{font-size:11px;color:var(--mt)}
+.nfb{width:100%;margin-top:9px;padding:6px;border-radius:var(--rs);font-size:12px;cursor:pointer;border:1.5px solid;font-family:inherit;font-weight:600;background:none;transition:.15s}
+.nfc.n .nfb{border-color:var(--g);color:var(--g)}.nfc.n .nfb:hover{background:var(--g);color:#fff}
+.nfc.f .nfb{border-color:var(--b);color:var(--b)}.nfc.f .nfb:hover{background:var(--b);color:#fff}
+.rrow{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--ra);border:1px solid var(--br);background:var(--sr);margin-bottom:6px;cursor:pointer;transition:.15s}
+.rrow:hover{border-color:#9FE1CB}.rrow.nn{border-color:var(--g)}.rrow.ff{border-color:var(--b)}
+.rdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.ri{flex:1}.rn{font-size:13px;font-weight:600}.rs{font-size:11px;color:var(--mt);margin-top:1px}
+.rdist{font-size:15px;font-weight:700}.rmg{font-size:11px;color:var(--mt)}
+.urow{display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:var(--ra);border:1px solid var(--br);background:var(--bg);margin-bottom:6px;opacity:.65}
+.anote{background:var(--bl);border:1px solid #AEC6E8;border-radius:var(--rs);padding:9px 12px;font-size:12px;color:var(--b);margin-bottom:11px;line-height:1.5}
+/* ROUTE */
+.bx{background:var(--bg);border-radius:var(--ra);padding:13px 14px;margin-bottom:11px;border:1px solid var(--br)}
+.lr{display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--sr);border:1px solid var(--br);border-radius:var(--rs);cursor:pointer;transition:.15s}
+.lr.ok{border-color:var(--g);background:var(--gl)}
+.lt{flex:1;font-size:13px}
+.bc{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.bn{font-size:26px;font-weight:700;color:var(--g)}
+.bt{flex:1;height:10px;background:var(--br);border-radius:5px;overflow:hidden}
+.bb{height:100%;border-radius:5px;background:var(--g);transition:width .2s}
+.di{width:100%;border:1px solid var(--br);border-radius:var(--rs);padding:8px 12px;font-size:14px;background:var(--sr);color:var(--tx);font-family:inherit;outline:none}
+.di:focus{border-color:var(--g)}
+.dsg{margin-top:7px;display:flex;flex-direction:column;gap:4px}
+.ds{padding:7px 12px;border-radius:var(--rs);border:1px solid var(--br);font-size:13px;cursor:pointer;background:var(--sr);color:var(--mt);font-family:inherit;transition:.15s}
+.ds:hover,.ds.on{border-color:var(--g);color:var(--tx)}
+.vg{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.vo{padding:9px;border-radius:var(--rs);border:1px solid var(--br);cursor:pointer;text-align:center;background:var(--sr);transition:.15s}
+.vo.on{border-color:var(--g);border-width:1.5px;background:var(--gl)}
+.vn{font-size:13px;font-weight:600;margin-bottom:2px}.vc{font-size:11px;color:var(--mt)}
+.rbtn{width:100%;padding:12px;border-radius:var(--ra);background:var(--g);border:none;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:11px;display:flex;align-items:center;justify-content:center;gap:8px;font-family:inherit}
+.rbtn:hover{background:var(--gd)}
+.rres{background:var(--bg);border-radius:var(--ra);padding:14px;display:none;border:1px solid var(--br)}
+.rres.show{display:block}
+.aib{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;background:var(--gl);color:var(--gd);padding:3px 11px;border-radius:20px;margin-bottom:9px}
+.rrn{font-size:15px;font-weight:700;margin-bottom:2px}.rrs{font-size:12px;color:var(--mt);margin-bottom:9px}
+.rrst{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:9px}
+.rrs2{background:var(--sr);border-radius:var(--rs);padding:7px;text-align:center;border:1px solid var(--br)}
+.rrsv{font-size:13px;font-weight:700;color:var(--g)}.rrsl{font-size:10px;color:var(--mt);margin-top:1px}
+.rrw{font-size:13px;color:var(--mt);line-height:1.6;background:var(--sr);border-radius:var(--rs);padding:9px 12px;border-left:3px solid var(--g);margin-bottom:9px}
+.rra{display:flex;gap:7px}
+.rrab{flex:1;padding:8px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--g);color:var(--g);background:none;font-family:inherit}
+.rrab.p{background:var(--g);color:#fff;border:none}
+/* BOOKING */
+.bsi{background:var(--bg);border-radius:var(--ra);padding:13px;margin-bottom:11px;border:1px solid var(--br)}
+.bsn{font-size:14px;font-weight:700;margin-bottom:2px}.bss{font-size:12px;color:var(--mt)}
+.sg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:11px}
+.sl2{padding:9px 4px;border-radius:var(--rs);border:1px solid var(--br);text-align:center;cursor:pointer;background:var(--sr);font-family:inherit;transition:.15s}
+.sl2.av:hover{border-color:var(--g)}.sl2.pk{background:var(--g);color:#fff;border-color:var(--g)}
+.sl2.bz{background:var(--bg);color:var(--mt);cursor:not-allowed;opacity:.6}
+.slt{font-weight:600;font-size:12px}.sll{font-size:10px;margin-top:1px}
+.dr{display:flex;gap:7px;margin-bottom:11px}
+.do{flex:1;padding:8px 4px;border-radius:var(--rs);border:1px solid var(--br);text-align:center;cursor:pointer;font-size:12px;font-weight:500;background:var(--sr);font-family:inherit;transition:.15s}
+.do.on{border-color:var(--g);color:var(--g);background:var(--gl)}
+.bsum{background:var(--bg);border-radius:var(--ra);padding:13px;margin-bottom:11px;border:1px solid var(--br)}
+.brow{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid var(--br)}
+.brow:last-child{border:none;font-weight:700;font-size:14px}
+.bbtn{width:100%;padding:12px;border-radius:var(--ra);background:var(--g);border:none;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+.bbtn:hover{background:var(--gd)}
+.bcf{background:var(--gl);border:1px solid #5DCAA5;border-radius:var(--ra);padding:16px;text-align:center;display:none;margin-top:11px}
+.bcf.show{display:block}
+.bci{font-size:32px;color:var(--g);margin-bottom:7px}
+.bct{font-size:15px;font-weight:700;margin-bottom:3px}.bcs{font-size:13px;color:var(--mt)}
+.bcr{font-size:12px;font-weight:600;background:var(--sr);border-radius:var(--rs);padding:7px 12px;margin-top:10px;color:var(--gd);display:inline-block}
+/* CHAT */
+.cw{display:flex;flex-direction:column;flex:1;overflow:hidden;min-height:0}
+.cm{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:7px}
+.msg{max-width:82%;display:flex;flex-direction:column;gap:2px}
+.msg.u{align-self:flex-end;align-items:flex-end}.msg.b{align-self:flex-start;align-items:flex-start}
+.bbl{padding:9px 13px;border-radius:17px;font-size:13px;line-height:1.5}
+.msg.u .bbl{background:var(--g);color:#fff;border-bottom-right-radius:3px}
+.msg.b .bbl{background:var(--bg);border:1px solid var(--br);border-bottom-left-radius:3px}
+.msg.b .bbl p{margin-bottom:4px}.msg.b .bbl p:last-child{margin:0}
+.msg.b .bbl strong{font-weight:600}.msg.b .bbl ul{margin-left:15px}
+.mt2{font-size:10px;color:var(--mt)}
+.qrs{display:flex;flex-wrap:wrap;gap:6px;padding:0 12px 8px}
+.qr{padding:5px 12px;border-radius:20px;border:1px solid var(--g);color:var(--g);font-size:12px;font-weight:500;background:none;cursor:pointer;font-family:inherit}
+.qr:hover{background:var(--gl)}
+.ciw{padding:8px 12px 11px;border-top:1px solid var(--br);display:flex;gap:8px;align-items:center}
+.cin{flex:1;border:1px solid var(--br);border-radius:22px;padding:9px 14px;font-size:13px;background:var(--bg);color:var(--tx);outline:none;font-family:inherit}
+.cin:focus{border-color:var(--g)}
+.snb{width:36px;height:36px;border-radius:50%;background:var(--g);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.snb:hover{background:var(--gd)}
+/* WALLET */
+.wc{background:linear-gradient(135deg,var(--g),var(--gd));border-radius:var(--ra);padding:19px;margin-bottom:13px;color:#fff}
+.wl{font-size:12px;opacity:.8;margin-bottom:3px;font-weight:500}
+.wb{font-size:32px;font-weight:700;margin-bottom:14px;letter-spacing:-1px}
+.wa{display:flex;gap:8px}
+.wab{flex:1;background:rgba(255,255,255,.18);border:none;color:#fff;padding:8px;border-radius:var(--rs);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.wab:hover{background:rgba(255,255,255,.28)}
+.stg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:13px}
+.stc{background:var(--sr);border-radius:var(--ra);padding:12px;border:1px solid var(--br)}
+.stv{font-size:20px;font-weight:700;color:var(--g)}.stl{font-size:12px;color:var(--mt);margin-top:2px}
+.txn{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--sr);border:1px solid var(--br);border-radius:var(--ra);margin-bottom:6px}
+.ti{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tn2{flex:1}.tn3{font-size:13px;font-weight:600}.td{font-size:11px;color:var(--mt);margin-top:1px}
+.ta{font-size:13px;font-weight:700}.ta.m{color:#A32D2D}.ta.p{color:var(--g)}
+.pc{border:2px solid var(--g);border-radius:var(--ra);padding:15px;margin-bottom:11px}
+.ph{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px}
+.pt{font-size:15px;font-weight:700}.pp{font-size:15px;font-weight:700;color:var(--g)}
+.pbg{background:var(--gl);color:var(--gd);font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px;margin-bottom:11px;display:inline-block}
+.pf{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:7px}
+.pf i{color:var(--g);font-size:15px;flex-shrink:0}
+.pbn{width:100%;padding:12px;border-radius:var(--ra);background:var(--g);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.pbn:hover{background:var(--gd)}
+.fb{background:var(--bg);border-radius:var(--ra);padding:13px;border:1px solid var(--br);margin-bottom:13px}
+.ft{font-size:13px;font-weight:600;color:var(--mt);margin-bottom:9px}
+.dots{display:inline-flex;gap:4px;align-items:center}
+.dots span{width:7px;height:7px;border-radius:50%;background:var(--g);animation:bnc 1.2s infinite}
+.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes bnc{0%,80%,100%{transform:scale(.5);opacity:.4}40%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg viewBox="0 0 44 52" width="28" height="34" xmlns="http://www.w3.org/2000/svg">
+        <rect x="0" y="2" width="26" height="6" rx="3" fill="#1D9E75"/>
+        <rect x="0" y="12" width="26" height="6" rx="3" fill="#1D9E75" opacity=".62"/>
+        <rect x="0" y="22" width="26" height="6" rx="3" fill="#1D9E75" opacity=".3"/>
+        <circle cx="36" cy="16" r="8" fill="#1D9E75"/>
+        <path d="M31 23 Q36 34 36 34 Q36 34 41 23" fill="#1D9E75"/>
+        <path d="M37.5 10 L34 18 L36.5 18 L34.5 24 L39.5 15 L37 15 Z" fill="#0A1628"/>
+        <rect x="33" y="33" width="2.5" height="4" rx="1.25" fill="#1D9E75"/>
+        <rect x="37.5" y="33" width="2.5" height="4" rx="1.25" fill="#1D9E75"/>
+      </svg>
+      <div class="logo">Watt<span>Lane</span></div>
+    </div>
+    <div class="tr">
+      <div class="lp" id="lp" onclick="reqLoc()"><i class="ti ti-map-pin" style="font-size:13px"></i><span id="ltxt">Locate me</span></div>
+      <div class="bp" onclick="switchTo('radar')"><div class="bi"><div class="bf" id="btop" style="width:72%"></div></div><span id="btlbl">72%</span></div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div class="screen active" id="screen-map">
+    <div class="mw"><div id="lmap"></div></div>
+    <div class="chips">
+      <div class="chip on" onclick="setChip(this,'all')">All Networks</div>
+      <div class="chip" onclick="setChip(this,'tata')">Tata Power</div>
+      <div class="chip" onclick="setChip(this,'statiq')">Statiq</div>
+      <div class="chip" onclick="setChip(this,'evre')">EVRE</div>
+      <div class="chip" onclick="setChip(this,'ather')">Ather Grid</div>
+      <div class="chip" onclick="setChip(this,'bolt')">Bolt.Earth</div>
+      <div class="chip" onclick="setChip(this,'jio')">Jio-BP</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 13px 4px;flex-shrink:0">
+      <i class="ti ti-search" style="color:var(--mt);font-size:15px;flex-shrink:0"></i>
+      <input type="text" placeholder="Search stations or area..." id="msearch" oninput="renderSt()" style="flex:1;border:none;background:none;font-size:13px;color:var(--tx);outline:none;font-family:inherit"/>
+    </div>
+    <div class="slist" id="slist"></div>
+  </div>
+
+  <!-- RADAR -->
+  <div class="screen" id="screen-radar">
+    <div class="pad">
+      <div class="sl">Range Radar</div>
+      <div class="rh">
+        <div class="rht">
+          <div><div class="sl" style="margin-bottom:2px">Battery</div><div class="rb" id="rbatt">72%</div></div>
+          <div class="rr2"><div class="sl" style="margin-bottom:2px">Real-world range</div><div class="rk" id="rkm">268 km</div><div class="rv" id="rveh">Tata Nexon EV · 80% of 465 km ARAI</div></div>
+        </div>
+        <div class="rtw"><div class="rtb"></div><div class="rtf" id="rtf" style="width:72%"></div><div class="rtt" id="rtt" style="left:72%">268 km</div></div>
+        <div class="rte"><span>0 km</span><span id="rmax">465 km ARAI</span></div>
+        <input type="range" min="5" max="100" value="72" id="rslider" oninput="updRadar(+this.value)" style="width:100%;margin-top:2px"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:3px"><span>5%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+      </div>
+      <div class="anote"><i class="ti ti-info-circle" style="font-size:14px;margin-right:4px"></i><strong>Range formula:</strong> ARAI range × battery % × <strong>80% real-world efficiency</strong> (Hyderabad traffic, AC use). 15% safety buffer applied to reachability.</div>
+      <div id="safbar" class="saf ok"><i class="ti ti-circle-check" id="safic"></i><div class="sat" id="saftxt"></div></div>
+      <div class="nfg" id="nfgrid"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="sl" style="margin-bottom:0">Reachable stations</div>
+        <div style="font-size:12px;color:var(--mt);font-weight:600" id="rcnt"></div>
+      </div>
+      <div id="rlist"></div>
+      <div id="ursec" style="display:none;margin-bottom:11px"><div class="sl" style="margin-bottom:8px">Out of range</div><div id="urlist"></div></div>
+      <button style="width:100%;padding:12px;border-radius:var(--ra);background:var(--g);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" onclick="switchTo('route')"><i class="ti ti-route"></i> Get AI Route Recommendation</button>
+    </div>
+  </div>
+
+  <!-- ROUTE -->
+  <div class="screen" id="screen-route">
+    <div class="pad">
+      <div class="sl">AI Smart Routing</div>
+      <div class="sl">Location</div>
+      <div class="bx" style="padding:9px 12px">
+        <div class="lr" id="rlr" onclick="reqLoc()">
+          <i class="ti ti-map-pin" style="font-size:17px;color:var(--mt)"></i>
+          <div class="lt" id="rltxt">Tap to share location for accurate distances</div>
+          <i class="ti ti-chevron-right" style="font-size:13px;color:var(--mt)"></i>
+        </div>
+      </div>
+      <div class="sl">Battery</div>
+      <div class="bx">
+        <div class="bc"><div class="bn" id="rpct">72%</div><div class="bt"><div class="bb" id="rbar" style="width:72%"></div></div></div>
+        <input type="range" min="5" max="100" value="72" id="bslider" oninput="updBatt(+this.value)" style="width:100%"/>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--mt);margin-top:3px"><span>Critical</span><span>Low</span><span>Good</span><span>Full</span></div>
+      </div>
+      <div class="sl">Destination</div>
+      <div class="bx">
+        <input class="di" type="text" placeholder="Where are you going?" id="destin" oninput="filDest()"/>
+        <div class="dsg" id="dsg">
+          <div class="ds" onclick="pickD(this,'HITEC City, Hyderabad')">HITEC City, Hyderabad</div>
+          <div class="ds" onclick="pickD(this,'Banjara Hills, Hyderabad')">Banjara Hills, Hyderabad</div>
+          <div class="ds" onclick="pickD(this,'Secunderabad Railway Station')">Secunderabad Railway Station</div>
+          <div class="ds" onclick="pickD(this,'Gachibowli, Hyderabad')">Gachibowli, Hyderabad</div>
+          <div class="ds" onclick="pickD(this,'Charminar, Old City')">Charminar, Old City</div>
+          <div class="ds" onclick="pickD(this,'Uppal, Hyderabad')">Uppal, Hyderabad</div>
+          <div class="ds" onclick="pickD(this,'Kompally, Hyderabad')">Kompally, Hyderabad</div>
+          <div class="ds" onclick="pickD(this,'Kukatpally, Hyderabad')">Kukatpally, Hyderabad</div>
+        </div>
+      </div>
+      <div class="sl">Vehicle</div>
+      <div class="bx">
+        <div class="vg">
+          <div class="vo on" onclick="pickV(this,'Tata Nexon EV',465,'CCS2')"><div class="vn">Tata Nexon EV</div><div class="vc">CCS2 · 465 km ARAI</div></div>
+          <div class="vo" onclick="pickV(this,'Tata Tiago EV',315,'CCS2')"><div class="vn">Tata Tiago EV</div><div class="vc">CCS2 · 315 km ARAI</div></div>
+          <div class="vo" onclick="pickV(this,'MG ZS EV',461,'CCS2')"><div class="vn">MG ZS EV</div><div class="vc">CCS2 · 461 km ARAI</div></div>
+          <div class="vo" onclick="pickV(this,'Ather 450X',146,'Type 2')"><div class="vn">Ather 450X</div><div class="vc">Type 2 · 146 km IDC</div></div>
+          <div class="vo" onclick="pickV(this,'Mahindra XUV400',456,'CCS2')"><div class="vn">Mahindra XUV400</div><div class="vc">CCS2 · 456 km ARAI</div></div>
+          <div class="vo" onclick="pickV(this,'Ola S1 Pro',181,'Ola')"><div class="vn">Ola S1 Pro</div><div class="vc">Ola · 181 km IDC</div></div>
+        </div>
+      </div>
+      <button class="rbtn" onclick="getRoute()"><i class="ti ti-bolt"></i> Find Best Charger with AI</button>
+      <div class="rres" id="rres">
+        <div class="aib"><i class="ti ti-cpu" style="font-size:12px"></i> AI recommendation</div>
+        <div id="rload" style="display:none;padding:7px 0"><div class="dots"><span></span><span></span><span></span></div></div>
+        <div id="rbody" style="display:none">
+          <div class="rrn" id="rrn"></div><div class="rrs" id="rrs3"></div>
+          <div class="rrst">
+            <div class="rrs2"><div class="rrsv" id="rrd"></div><div class="rrsl">Distance</div></div>
+            <div class="rrs2"><div class="rrsv" id="rre"></div><div class="rrsl">Drive</div></div>
+            <div class="rrs2"><div class="rrsv" id="rrw2"></div><div class="rrsl">Wait</div></div>
+            <div class="rrs2"><div class="rrsv" id="rrsp"></div><div class="rrsl">Charger</div></div>
+          </div>
+          <div class="rrw" id="rrwhy"></div>
+          <div class="rra">
+            <button class="rrab" onclick="switchTo('book')"><i class="ti ti-calendar"></i> Book slot</button>
+            <button class="rrab p" onclick="openMaps()"><i class="ti ti-navigation"></i> Navigate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOKING -->
+  <div class="screen" id="screen-book">
+    <div class="pad">
+      <div class="sl">Book a Charging Slot</div>
+      <div class="bsi"><div class="bsn" id="bkn">Select a station</div><div class="bss" id="bks">Choose from map or AI route</div></div>
+      <div class="sl">Time slot — Today</div>
+      <div class="sg" id="slotg"></div>
+      <div class="sl">Duration</div>
+      <div class="dr">
+        <div class="do on" onclick="pickDur(this,30,'₹27')">30 min<br><small style="color:var(--mt)">~₹27</small></div>
+        <div class="do" onclick="pickDur(this,60,'₹54')">1 hr<br><small style="color:var(--mt)">~₹54</small></div>
+        <div class="do" onclick="pickDur(this,90,'₹81')">1.5 hr<br><small style="color:var(--mt)">~₹81</small></div>
+        <div class="do" onclick="pickDur(this,120,'₹108')">2 hr<br><small style="color:var(--mt)">~₹108</small></div>
+      </div>
+      <div class="sl">Booking summary</div>
+      <div class="bsum">
+        <div class="brow"><span style="color:var(--mt)">Station</span><span id="sstn">—</span></div>
+        <div class="brow"><span style="color:var(--mt)">Date</span><span>Today</span></div>
+        <div class="brow"><span style="color:var(--mt)">Time</span><span id="stime">—</span></div>
+        <div class="brow"><span style="color:var(--mt)">Duration</span><span id="sdur">30 min</span></div>
+        <div class="brow"><span style="color:var(--mt)">Connector</span><span id="sconn">—</span></div>
+        <div class="brow"><span>Estimated cost</span><span id="scost">₹27</span></div>
+      </div>
+      <button class="bbtn" id="bkbtn" onclick="confBook()">Confirm — Pay from Wallet</button>
+      <div class="bcf" id="bkcf">
+        <div class="bci"><i class="ti ti-circle-check"></i></div>
+        <div class="bct">Slot Confirmed!</div>
+        <div class="bcs">Charger reserved. Reminder 10 min before your slot.</div>
+        <div class="bcr" id="bkref">Booking ref: WL-BOOK-0000</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUPPORT -->
+  <div class="screen" id="screen-support">
+    <div class="cw">
+      <div class="cm" id="cmsgs"></div>
+      <div class="qrs" id="qrs">
+        <button class="qr" onclick="sendQ('My charging session failed to start')">Session failed</button>
+        <button class="qr" onclick="sendQ('Payment deducted but charging did not start')">Payment issue</button>
+        <button class="qr" onclick="sendQ('The charger cable is stuck')">Cable stuck</button>
+        <button class="qr" onclick="sendQ('Find nearest CCS2 fast charger')">Find CCS2</button>
+        <button class="qr" onclick="sendQ('How do I upgrade to WattLane Premium?')">Go Premium</button>
+      </div>
+      <div class="ciw">
+        <input class="cin" type="text" placeholder="Describe your issue..." id="cin" onkeydown="if(event.key==='Enter')sendChat()"/>
+        <button class="snb" onclick="sendChat()"><i class="ti ti-send" style="font-size:15px"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WALLET -->
+  <div class="screen" id="screen-wallet">
+    <div class="pad">
+      <div class="wc"><div class="wl">WattLane Wallet</div><div class="wb" id="wbal">₹ 847.50</div>
+        <div class="wa">
+          <button class="wab" onclick="topUp()"><i class="ti ti-plus"></i> Top up</button>
+          <button class="wab"><i class="ti ti-download"></i> Statement</button>
+          <button class="wab" onclick="switchTo('premium')"><i class="ti ti-star"></i> Premium</button>
+        </div>
+      </div>
+      <div class="stg">
+        <div class="stc"><div class="stv">23</div><div class="stl">Sessions this month</div></div>
+        <div class="stc"><div class="stv">₹312</div><div class="stl">Spent this month</div></div>
+        <div class="stc"><div class="stv">187 km</div><div class="stl">Range added</div></div>
+        <div class="stc"><div class="stv">38 kg</div><div class="stl">CO₂ saved</div></div>
+      </div>
+      <div class="sl" style="margin-bottom:8px">Recent transactions</div>
+      <div id="txnlist"></div>
+    </div>
+  </div>
+
+  <!-- PREMIUM -->
+  <div class="screen" id="screen-premium">
+    <div class="pad">
+      <div class="sl">WattLane Premium</div>
+      <div class="pc">
+        <div class="ph"><div class="pt">Premium Plan</div><div class="pp">₹149/month</div></div>
+        <div class="pbg"><i class="ti ti-star" style="font-size:11px"></i> Most popular</div>
+        <div class="pf"><i class="ti ti-bolt"></i><span>Unlimited AI smart routing</span></div>
+        <div class="pf"><i class="ti ti-radar"></i><span>Range Radar — nearest &amp; farthest reachable</span></div>
+        <div class="pf"><i class="ti ti-calendar"></i><span>Advance slot booking up to 7 days</span></div>
+        <div class="pf"><i class="ti ti-message-chatbot"></i><span>Priority AI support — under 2 min</span></div>
+        <div class="pf"><i class="ti ti-chart-bar"></i><span>Full charging history analytics</span></div>
+        <div class="pf"><i class="ti ti-tag"></i><span>5% cashback on every session</span></div>
+        <div style="margin-bottom:13px"></div>
+        <button class="pbn" id="pbtn" onclick="subPrem()">Start 7-day Free Trial</button>
+      </div>
+      <div class="fb"><div class="ft">Free plan includes</div>
+        <div class="pf"><i class="ti ti-map-2"></i><span>Full charger map — 30 real Hyderabad stations</span></div>
+        <div class="pf"><i class="ti ti-wallet"></i><span>Unified wallet — one payment for all networks</span></div>
+        <div class="pf"><i class="ti ti-message"></i><span>Standard AI support chat</span></div>
+        <div class="pf"><i class="ti ti-route"></i><span>Basic routing (3 uses per day)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="nb active" onclick="switchTo('map')" id="nav-map"><i class="ti ti-map-2"></i><span>Map</span></button>
+    <button class="nb" onclick="switchTo('radar')" id="nav-radar"><i class="ti ti-radar"></i><span>Radar</span></button>
+    <button class="nb" onclick="switchTo('route')" id="nav-route"><i class="ti ti-route"></i><span>AI Route</span></button>
+    <button class="nb" onclick="switchTo('book')" id="nav-book"><i class="ti ti-calendar"></i><span>Book</span></button>
+    <button class="nb" onclick="switchTo('support')" id="nav-support"><i class="ti ti-message-chatbot"></i><span>Support</span></button>
+    <button class="nb" onclick="switchTo('wallet')" id="nav-wallet"><i class="ti ti-wallet"></i><span>Wallet</span></button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+// ── 30 REAL Hyderabad EV charging stations with verified GPS coords ──
+// Sources: Statiq, Tata Power, EVRE, Ather, Bolt.Earth, Jio-BP, ZigWheels, CarDekho
+const ST=[
+  // TATA POWER
+  {id:0,  name:"Tata Power — Banjara Hills Rd 12",area:"Banjara Hills",net:"tata",status:"available",lat:17.4245,lng:78.4499,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"0 min",am:["24/7","CCTV"]},
+  {id:1,  name:"Tata Power — Jubilee Hills Croma",area:"Jubilee Hills",net:"tata",status:"available",lat:17.4320,lng:78.4075,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"0 min",am:["Mall","Parking"]},
+  {id:2,  name:"Tata Power — Gachibowli Fin. District",area:"Gachibowli",net:"tata",status:"available",lat:17.4156,lng:78.3495,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"0 min",am:["IT Park","24/7"]},
+  {id:3,  name:"Tata Power — Kukatpally KPHB",area:"Kukatpally",net:"tata",status:"busy",lat:17.4849,lng:78.3996,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"~15 min",am:["Petrol stn"]},
+  {id:4,  name:"Tata Power — Kompally IOC",area:"Kompally",net:"tata",status:"available",lat:17.5406,lng:78.4701,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"0 min",am:["Highway","24/7"]},
+  {id:5,  name:"Tata Power — Nagole RTA Track",area:"Nagole",net:"tata",status:"available",lat:17.3880,lng:78.5530,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"0 min",am:["24/7"]},
+  {id:6,  name:"Tata Power — Mehdipatnam",area:"Mehdipatnam",net:"tata",status:"available",lat:17.3956,lng:78.4319,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"0 min",am:["Mall","Paid"]},
+  {id:7,  name:"Tata Power — Saroornagar Stadium",area:"Saroornagar",net:"tata",status:"offline",lat:17.3470,lng:78.5450,speed:"DC 50kW",conn:"CCS2",price:"₹18/kWh",wait:"N/A",am:["Offline"]},
+  // STATIQ
+  {id:8,  name:"Statiq — Durgam Cheruvu",area:"Jubilee Hills",net:"statiq",status:"available",lat:17.4338,lng:78.3965,speed:"DC 60kW",conn:"CCS2",price:"₹16/kWh",wait:"0 min",am:["Park","Lake view"]},
+  {id:9,  name:"Statiq — Gachibowli Stadium",area:"Gachibowli",net:"statiq",status:"available",lat:17.4353,lng:78.3622,speed:"DC 60kW",conn:"CCS2",price:"₹16/kWh",wait:"0 min",am:["Stadium","Paid"]},
+  {id:10, name:"Statiq — LB Stadium",area:"Nampally",net:"statiq",status:"busy",lat:17.3897,lng:78.4668,speed:"DC 60kW",conn:"CCS2",price:"₹16/kWh",wait:"~20 min",am:["Stadium"]},
+  {id:11, name:"Statiq — Hyderabad Central Univ.",area:"Gachibowli",net:"statiq",status:"available",lat:17.4567,lng:78.3320,speed:"AC 22kW",conn:"CCS2",price:"₹16/kWh",wait:"0 min",am:["Campus","Free pkng"]},
+  {id:12, name:"Statiq — Krishna Kanth Park",area:"Begumpet",net:"statiq",status:"available",lat:17.4394,lng:78.4631,speed:"DC 60kW",conn:"CCS2",price:"₹16/kWh",wait:"0 min",am:["Park","24/7"]},
+  {id:13, name:"Statiq — BHEL MIG Colony",area:"BHEL",net:"statiq",status:"available",lat:17.4910,lng:78.3140,speed:"AC 22kW",conn:"CCS2",price:"₹16/kWh",wait:"0 min",am:["Residential"]},
+  // EVRE
+  {id:14, name:"EVRE — Hitech City Hub",area:"HITEC City",net:"evre",status:"available",lat:17.4486,lng:78.3800,speed:"DC 30kW",conn:"CCS2",price:"₹15/kWh",wait:"0 min",am:["Metro","24/7"]},
+  {id:15, name:"EVRE — Madhapur Main",area:"Madhapur",net:"evre",status:"busy",lat:17.4486,lng:78.3908,speed:"DC 30kW",conn:"CCS2",price:"₹15/kWh",wait:"~20 min",am:["IT Park","CCTV"]},
+  {id:16, name:"EVRE — Kondapur Junction",area:"Kondapur",net:"evre",status:"available",lat:17.4668,lng:78.3567,speed:"DC 30kW",conn:"CCS2",price:"₹15/kWh",wait:"0 min",am:["Junction","24/7"]},
+  {id:17, name:"EVRE — Miyapur Metro",area:"Miyapur",net:"evre",status:"available",lat:17.4968,lng:78.3380,speed:"DC 30kW",conn:"CCS2",price:"₹15/kWh",wait:"0 min",am:["Metro","24/7"]},
+  // ATHER GRID
+  {id:18, name:"Ather Grid — Sarath City Mall",area:"Kondapur",net:"ather",status:"available",lat:17.4575,lng:78.3638,speed:"AC 5kW",conn:"Type 2",price:"₹10/kWh",wait:"0 min",am:["Mall","Scooters"]},
+  {id:19, name:"Ather Grid — Jubilee Hills DSL Mall",area:"Jubilee Hills",net:"ather",status:"available",lat:17.4321,lng:78.4020,speed:"AC 5kW",conn:"Type 2",price:"₹10/kWh",wait:"0 min",am:["Mall B1 pkng"]},
+  {id:20, name:"Ather Grid — Shilparamam Madhapur",area:"Madhapur",net:"ather",status:"offline",lat:17.4508,lng:78.3882,speed:"AC 5kW",conn:"Type 2",price:"₹10/kWh",wait:"N/A",am:["Under repair"]},
+  {id:21, name:"Ather Grid — Uppal Rajiv Gandhi Stadium",area:"Uppal",net:"ather",status:"available",lat:17.4059,lng:78.5590,speed:"AC 5kW",conn:"Type 2",price:"₹10/kWh",wait:"0 min",am:["Stadium mall"]},
+  // BOLT.EARTH
+  {id:22, name:"Bolt.Earth — Kondapur Sangeetha",area:"Kondapur",net:"bolt",status:"available",lat:17.4653,lng:78.3590,speed:"AC 7.4kW",conn:"Type 2",price:"₹12/kWh",wait:"0 min",am:["Café","Wi-Fi"]},
+  {id:23, name:"Bolt.Earth — Somajiguda GS Centre",area:"Somajiguda",net:"bolt",status:"available",lat:17.4234,lng:78.4568,speed:"AC 7.4kW",conn:"Type 2",price:"₹12/kWh",wait:"0 min",am:["Mall","Paid"]},
+  {id:24, name:"Bolt.Earth — Langar Houz Reliance",area:"Langar Houz",net:"bolt",status:"busy",lat:17.3870,lng:78.4305,speed:"AC 7.4kW",conn:"Type 2",price:"₹12/kWh",wait:"~10 min",am:["24/7"]},
+  {id:25, name:"Bolt.Earth — Secunderabad Parade Grd",area:"Secunderabad",net:"bolt",status:"available",lat:17.4437,lng:78.5016,speed:"AC 7.4kW",conn:"Type 2",price:"₹12/kWh",wait:"0 min",am:["Open area"]},
+  // JIO-BP PULSE
+  {id:26, name:"Jio-BP Pulse — Marriott Tank Bund",area:"Tank Bund",net:"jio",status:"available",lat:17.4239,lng:78.4753,speed:"DC 50kW",conn:"CCS2",price:"₹17/kWh",wait:"0 min",am:["Hotel","Valet"]},
+  {id:27, name:"Jio-BP Pulse — Attapur Sirimalle Sq",area:"Attapur",net:"jio",status:"available",lat:17.3711,lng:78.4278,speed:"DC 50kW",conn:"CCS2",price:"₹17/kWh",wait:"0 min",am:["24/7","Highway"]},
+  {id:28, name:"Jio-BP Pulse — Old Malakpet NH65",area:"Old Malakpet",net:"jio",status:"busy",lat:17.3760,lng:78.5030,speed:"DC 50kW",conn:"CCS2",price:"₹17/kWh",wait:"~15 min",am:["Highway","24/7"]},
+  {id:29, name:"Jio-BP Pulse — Kachiguda Nallakunta",area:"Kachiguda",net:"jio",status:"available",lat:17.3940,lng:78.4870,speed:"DC 50kW",conn:"CCS2",price:"₹17/kWh",wait:"0 min",am:["24/7"]},
+];
+
+const TXNS=[
+  {ico:"charge",name:"Tata Power — Banjara Hills",date:"Today, 9:14 AM",amt:"-₹54.00"},
+  {ico:"topup",name:"Wallet top-up",date:"Yesterday, 7:30 PM",amt:"+₹500.00"},
+  {ico:"charge",name:"Statiq — Durgam Cheruvu",date:"23 May, 2:15 PM",amt:"-₹72.00"},
+  {ico:"charge",name:"EVRE — Hitech City Hub",date:"22 May, 11:00 AM",amt:"-₹45.00"},
+  {ico:"charge",name:"Bolt.Earth — Kondapur",date:"20 May, 6:45 PM",amt:"-₹28.80"},
+  {ico:"topup",name:"Wallet top-up",date:"18 May, 10:00 AM",amt:"+₹500.00"},
+];
+
+const QRS={
+  'My charging session failed to start':"I've retrieved your session log. **Tata Power — Banjara Hills** (WL-29471) failed at OCPP handshake.\n\n**Done:** Charger flagged, ticket #TKT-8821 raised. No charge to your wallet. Nearest alternative: **Statiq — Durgam Cheruvu**, 0 min wait.",
+  'Payment deducted but charging did not start':"Payment of **₹54.00** debited but session never started.\n\n**Refund:** Automatically initiated ✓ — credit in 2–4 hours. Gateway issue escalated to EVRE ops.",
+  'The charger cable is stuck':"Don't force it.\n\n1. **Unlock** vehicle via key fob or app\n2. Press **release button** on charger gun\n3. Tap **Emergency Release** on the station screen\n\nStill stuck? I can remotely trigger cable release — shall I?",
+  'Find nearest CCS2 fast charger':"Nearest available CCS2 fast chargers in Hyderabad:\n\n1. **Jio-BP Pulse — Marriott Tank Bund** · DC 50kW · ₹17/kWh · 0 min wait\n2. **Tata Power — Banjara Hills Rd 12** · DC 50kW · ₹18/kWh · 0 min wait\n3. **Statiq — Durgam Cheruvu** · DC 60kW · ₹16/kWh · 0 min wait\n\nShare your location in **AI Route** for personalised distances.",
+  'How do I upgrade to WattLane Premium?':"**WattLane Premium** is ₹149/month:\n\n- Unlimited AI routing\n- Range Radar (nearest & farthest reachable)\n- Advance slot booking (7 days)\n- Priority support (< 2 min)\n- 5% cashback\n\nTap **Wallet → Premium** to start your 7-day free trial.",
+};
+
+let batt=72,uLat=null,uLng=null;
+let veh={name:'Tata Nexon EV',arai:465,real:372,conn:'CCS2'};
+let selSt=null,curF='all',selDest='',selSlot='',selDur=30,selCost='₹27',bkSt=ST[0];
+let map=null,mkrs=[],uMkr=null;
+
+function hav(a,b,c,d){const R=6371,dA=(c-a)*Math.PI/180,dB=(d-b)*Math.PI/180;const x=Math.sin(dA/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dB/2)**2;return+(R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x))).toFixed(1);}
+const rLat=()=>uLat||17.4300, rLng=()=>uLng||17.4300>0?78.4100:78.4100;
+const rlat=()=>uLat||17.4300, rlng=()=>uLng||78.4100;
+const dist=s=>hav(rlat(),rlng(),s.lat,s.lng);
+const realKm=()=>+(veh.real*(batt/100)).toFixed(0);
+const safeKm=()=>+(realKm()*0.85).toFixed(1);
+
+function mkIcon(color, letter){
+  return L.divIcon({
+    html:`<div class="ww-pin" style="background:${color}"><span class="ww-pin-lbl">${letter}</span></div>`,
+    iconSize:[28,28], iconAnchor:[14,28], popupAnchor:[0,-30], className:''
+  });
+}
+
+function initMap(){
+  map = L.map('lmap',{zoomControl:false, attributionControl:true}).setView([17.4300,78.4100],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+    maxZoom:19
+  }).addTo(map);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  renderMkrs();
+}
+
+const NET_LETTER={tata:'T',statiq:'S',evre:'E',ather:'A',bolt:'B',jio:'J'};
+
+function renderMkrs(){
+  if(!map) return;
+  mkrs.forEach(m=>map.removeLayer(m)); mkrs=[];
+  const sr=safeKm();
+  ST.forEach(s=>{
+    const col=s.status==='available'?'#1D9E75':s.status==='busy'?'#EF9F27':'#E24B4A';
+    const letter=NET_LETTER[s.net]||'?';
+    const d=dist(s), can=s.status!=='offline'&&d<=sr;
+    const m=L.marker([s.lat,s.lng],{icon:mkIcon(col,letter),opacity:(!can&&s.status!=='offline')?0.45:1}).addTo(map);
+    m.bindPopup(`<div class="ww-popup">
+      <div class="ww-popup-name">${s.name}</div>
+      <div class="ww-popup-sub">${s.area} · ${d} km away</div>
+      <div class="ww-popup-tags">
+        <span class="ww-popup-tag" style="background:${s.status==='available'?'#E1F5EE':s.status==='busy'?'#FAEEDA':'#FCEBEB'};color:${s.status==='available'?'#0F6E56':s.status==='busy'?'#854F0B':'#A32D2D'}">${s.status==='available'?'Available':s.status==='busy'?'Busy':'Offline'}</span>
+        ${s.status!=='offline'?`<span class="ww-popup-tag" style="background:${can?'#E6F1FB':'#FCEBEB'};color:${can?'#185FA5':'#A32D2D'}">${can?'✓ In range':'✗ Out of range'}</span>`:''}
+      </div>
+      <div class="ww-popup-meta"><strong>${s.speed}</strong> · ${s.conn} · ${s.price}</div>
+      <div class="ww-popup-wait">Wait: ${s.wait} · ${s.am.join(', ')}</div>
+      ${s.status!=='offline'?`<button class="ww-popup-btn" onclick="bookThis(${s.id})">Book Slot</button>`:''}
+    </div>`,{maxWidth:220});
+    mkrs.push(m);
+  });
+}
+
+function reqLoc(){
+  if(!navigator.geolocation){alert('Geolocation not supported.');return;}
+  document.getElementById('ltxt').textContent='Locating...';
+  navigator.geolocation.getCurrentPosition(p=>{
+    uLat=p.coords.latitude; uLng=p.coords.longitude;
+    setOK(uLat.toFixed(4)+', '+uLng.toFixed(4));
+    if(map){
+      if(uMkr) map.removeLayer(uMkr);
+      uMkr=L.circleMarker([uLat,uLng],{radius:9,color:'#185FA5',fillColor:'#185FA5',fillOpacity:.9,weight:3}).addTo(map);
+      uMkr.bindPopup('<div style="font-family:Inter,sans-serif;font-weight:700;font-size:13px;color:#111827">📍 Your location</div>');
+      map.setView([uLat,uLng],13);
+    }
+    renderSt(); renderMkrs(); renderRadar();
+  },()=>{
+    uLat=17.4300; uLng=78.4100;
+    setOK('Hyderabad centre (approx.)');
+    renderSt(); renderMkrs(); renderRadar();
+  });
+}
+
+function setOK(txt){
+  document.getElementById('ltxt').textContent='Located ✓';
+  document.getElementById('lp').classList.add('ok');
+  document.getElementById('rltxt').textContent=txt;
+  document.getElementById('rlr').classList.add('ok');
+}
+
+function switchTo(t){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+t).classList.add('active');
+  const nb=document.getElementById('nav-'+t); if(nb) nb.classList.add('active');
+  if(t==='map'&&map) setTimeout(()=>map.invalidateSize(),50);
+  if(t==='radar') renderRadar();
+}
+
+function setChip(el,v){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); curF=v; renderSt(); renderMkrs();
+}
+
+function renderSt(){
+  const q=(document.getElementById('msearch').value||'').toLowerCase();
+  const sr=safeKm();
+  let list=ST.filter(s=>(curF==='all'||s.net===curF)&&(!q||s.name.toLowerCase().includes(q)||s.area.toLowerCase().includes(q))).sort((a,b)=>dist(a)-dist(b));
+  document.getElementById('slist').innerHTML=list.map(s=>{
+    const d=dist(s),can=s.status!=='offline'&&d<=sr;
+    return`<div id="sc-${s.id}" class="sc${selSt===s.id?' sel':''}" onclick="selS(${s.id})">
+      <div class="st"><div class="sn">${s.name}</div><div class="sd">${d} km</div></div>
+      <div class="tgs">
+        <span class="tg ${s.status==='available'?'g':s.status==='busy'?'a':'r'}">${s.status==='available'?'Available':s.status==='busy'?'Busy':'Offline'}</span>
+        ${s.status!=='offline'?`<span class="tg ${can?'b':'nr'}">${can?'✓ In range':'✗ Out of range'}</span>`:''}
+        <span class="tg">${s.speed}</span><span class="tg">${s.conn}</span>
+        ${s.am.map(a=>`<span class="tg">${a}</span>`).join('')}
+      </div>
+      <div class="sb">
+        <div class="sp">${s.price} · Wait: ${s.wait}</div>
+        <div class="sa">${s.status!=='offline'?`<button class="bs" onclick="event.stopPropagation();bookThis(${s.id})"><i class="ti ti-calendar"></i> Book</button><button class="bs p" onclick="event.stopPropagation();navTo(${s.id})"><i class="ti ti-navigation"></i> Go</button>`:`<span style="font-size:12px;color:var(--mt)">Unavailable</span>`}</div>
+      </div>
+    </div>`;
+  }).join('')||'<div style="padding:20px;text-align:center;color:var(--mt)">No stations match</div>';
+}
+
+function selS(id){selSt=id;renderSt();}
+function navTo(id){const s=ST[id];window.open(`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`,'_blank');}
+function openMaps(){const s=ST.filter(x=>x.status!=='offline').sort((a,b)=>dist(a)-dist(b))[0]||ST[0];window.open(`https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`,'_blank');}
+
+function renderRadar(){
+  const rKm=realKm(),sr=safeKm(),arai=veh.arai;
+  document.getElementById('rbatt').textContent=batt+'%';
+  document.getElementById('rkm').textContent=rKm+' km';
+  document.getElementById('rveh').textContent=veh.name+' · 80% of '+arai+' km ARAI';
+  document.getElementById('rmax').textContent=arai+' km ARAI';
+  const bp=Math.min((rKm/arai)*100,100);
+  document.getElementById('rtf').style.width=bp+'%';
+  const tl=Math.min(Math.max(bp,5),93);
+  document.getElementById('rtt').style.left=tl+'%';
+  document.getElementById('rtt').textContent=rKm+' km';
+
+  const avail=ST.filter(s=>s.status!=='offline').map(s=>({...s,d:dist(s)})).sort((a,b)=>a.d-b.d);
+  const reach=avail.filter(s=>s.d<=sr);
+  const unreach=avail.filter(s=>s.d>sr);
+
+  const bar=document.getElementById('safbar'),ico=document.getElementById('safic'),txt=document.getElementById('saftxt');
+  if(batt<=15){bar.className='saf cr';ico.className='ti ti-alert-octagon';txt.innerHTML=`<strong>Critical — ${rKm} km remaining.</strong> Only ${reach.length} station${reach.length!==1?'s':''} reachable (within ${sr} km). Charge immediately.`;}
+  else if(batt<=30){bar.className='saf wn';ico.className='ti ti-alert-triangle';txt.innerHTML=`<strong>Low battery — ${rKm} km remaining.</strong> ${reach.length} station${reach.length!==1?'s':''} within safe reach (${sr} km). Head to the nearest soon.`;}
+  else{bar.className='saf ok';ico.className='ti ti-circle-check';const f=reach.length>0?reach[reach.length-1]:null;txt.innerHTML=`<strong>Good — ${rKm} km real-world range.</strong> ${reach.length} of ${avail.length} stations reachable.${f?` Farthest: <strong>${f.name}</strong> (${f.d} km).`:''}"`;}
+
+  const grid=document.getElementById('nfgrid');
+  if(reach.length===0){
+    grid.innerHTML=`<div style="grid-column:span 2;background:var(--rl);border:1px solid var(--rd);border-radius:var(--ra);padding:16px;text-align:center;color:#A32D2D;font-weight:600;font-size:13px"><i class="ti ti-alert-circle" style="font-size:28px;display:block;margin-bottom:6px"></i>No stations within safe range (${sr} km).</div>`;
+  } else {
+    const nr=reach[0],fr=reach[reach.length-1];
+    const mn=+(sr-nr.d).toFixed(1),mf=+(sr-fr.d).toFixed(1);
+    grid.innerHTML=`
+      <div class="nfc n"><div class="nfl"><i class="ti ti-arrow-down-circle" style="font-size:11px"></i> Nearest</div>
+        <div class="nfn">${nr.name}</div><div class="nfk">${nr.d} km</div>
+        <div class="nfm">${nr.speed} · ${nr.wait} wait</div><div class="nfm" style="margin-top:2px">${mn} km safety margin</div>
+        <button class="nfb" onclick="navTo(${nr.id})"><i class="ti ti-navigation"></i> Navigate</button>
+      </div>
+      <div class="nfc f"><div class="nfl"><i class="ti ti-arrow-up-circle" style="font-size:11px"></i> Farthest reachable</div>
+        <div class="nfn">${fr.name}</div><div class="nfk">${fr.d} km</div>
+        <div class="nfm">${fr.speed} · ${fr.wait} wait</div><div class="nfm" style="margin-top:2px">${mf} km to spare</div>
+        <button class="nfb" onclick="navTo(${fr.id})"><i class="ti ti-navigation"></i> Navigate</button>
+      </div>`;
+  }
+
+  document.getElementById('rcnt').textContent=reach.length+' of '+avail.length;
+  const nid=reach.length>0?reach[0].id:-1,fid=reach.length>1?reach[reach.length-1].id:-1;
+  document.getElementById('rlist').innerHTML=reach.map(s=>{
+    const iN=s.id===nid,iF=s.id===fid&&reach.length>1;
+    const m=+(sr-s.d).toFixed(1),col=s.status==='available'?'#1D9E75':'#EF9F27';
+    return`<div class="rrow${iN?' nn':iF?' ff':''}" onclick="bookThis(${s.id})">
+      <div class="rdot" style="background:${col}"></div>
+      <div class="ri"><div class="rn">${s.name}${iN?' <span style="font-size:10px;color:var(--g);font-weight:700">· Nearest</span>':''}${iF?' <span style="font-size:10px;color:var(--b);font-weight:700">· Farthest</span>':''}</div>
+      <div class="rs">${s.area} · ${s.speed} · ${s.wait} wait</div></div>
+      <div style="text-align:right;flex-shrink:0"><div class="rdist" style="color:${iN?'var(--g)':iF?'var(--b)':'var(--tx)'}">${s.d} km</div><div class="rmg">+${m} km margin</div></div>
+    </div>`;
+  }).join('')||'<div style="padding:12px;text-align:center;color:var(--mt)">No reachable stations</div>';
+
+  const us=document.getElementById('ursec');
+  if(unreach.length>0){us.style.display='block';document.getElementById('urlist').innerHTML=unreach.map(s=>{const sh=+(s.d-sr).toFixed(1);return`<div class="urow"><div class="rdot" style="background:#B4B2A9"></div><div style="flex:1"><div style="font-size:13px;color:var(--mt);font-weight:600">${s.name}</div><div style="font-size:11px;color:var(--mt)">${s.area} · ${s.speed}</div></div><div style="text-align:right"><div style="font-size:13px;color:var(--mt)">${s.d} km</div><div style="font-size:11px;color:#A32D2D;font-weight:600">${sh} km short</div></div></div>`;}).join('');}
+  else us.style.display='none';
+  renderMkrs();
+}
+
+function syncB(){
+  const col=batt<20?'#E24B4A':batt<40?'#EF9F27':'#1D9E75';
+  document.getElementById('btlbl').textContent=batt+'%';
+  document.getElementById('btop').style.cssText=`width:${batt}%;background:${col}`;
+  ['rslider','bslider'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=batt;});
+  const rp=document.getElementById('rpct');if(rp)rp.textContent=batt+'%';
+  const rb=document.getElementById('rbar');if(rb)rb.style.cssText=`width:${batt}%;background:${col}`;
+}
+function updRadar(v){batt=v;syncB();renderRadar();renderSt();}
+function updBatt(v){batt=v;syncB();renderSt();renderRadar();}
+function pickV(el,name,arai,conn){
+  document.querySelectorAll('.vo').forEach(v=>v.classList.remove('on'));
+  el.classList.add('on');veh={name,arai,real:Math.round(arai*.8),conn};
+  renderRadar();renderSt();
+}
+function pickD(el,val){document.querySelectorAll('.ds').forEach(d=>d.classList.remove('on'));el.classList.add('on');selDest=val;document.getElementById('destin').value=val;}
+function filDest(){const q=document.getElementById('destin').value.toLowerCase();document.querySelectorAll('.ds').forEach(d=>d.style.display=d.textContent.toLowerCase().includes(q)?'':'none');}
+
+async function getRoute(){
+  const rr=document.getElementById('rres'),ld=document.getElementById('rload'),bd=document.getElementById('rbody');
+  rr.classList.add('show');ld.style.display='block';bd.style.display='none';
+  const avail=ST.filter(s=>s.status!=='offline').sort((a,b)=>dist(a)-dist(b));
+  const rKm=realKm();
+  const info=avail.map(s=>`${s.name} (${dist(s)}km, ${s.speed}, ${s.conn}, ${s.status}, wait:${s.wait}, ${s.price})`).join('\n');
+  const lc=uLat?`User GPS: ${uLat.toFixed(4)}, ${uLng.toFixed(4)}`:'No GPS, use Hyderabad context';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:350,system:'You are WattLane AI routing for Hyderabad. Reply ONLY in JSON: {"station":"exact name","sub":"area · X km away","dist":"X.X km","eta":"X min drive","wait":"X min","speed":"DC/AC XkW","reason":"2-3 sentences"}',messages:[{role:'user',content:`${lc}\nVehicle: ${veh.name} (${veh.conn}, ARAI ${veh.arai}km, real-world ${rKm}km at ${batt}%)\nDestination: ${selDest||'unspecified'}\nStations:\n${info}\nPick the best station.`}]})});
+    const data=await res.json();
+    const raw=data.content&&data.content[0]?data.content[0].text:'{}';
+    let rec;try{rec=JSON.parse(raw);}catch(e){const m=raw.match(/\{[\s\S]*\}/);rec=m?JSON.parse(m[0]):{station:avail[0].name,sub:avail[0].area,dist:dist(avail[0])+' km',eta:'~5 min',wait:avail[0].wait,speed:avail[0].speed,reason:'Nearest available charger for your battery level.'};}
+    ld.style.display='none';bd.style.display='block';
+    document.getElementById('rrn').textContent=rec.station||'Best match';
+    document.getElementById('rrs3').textContent=rec.sub||(selDest?'En route to '+selDest:'');
+    document.getElementById('rrd').textContent=rec.dist||'—';
+    document.getElementById('rre').textContent=rec.eta||'—';
+    document.getElementById('rrw2').textContent=rec.wait||'—';
+    document.getElementById('rrsp').textContent=rec.speed||'—';
+    document.getElementById('rrwhy').textContent=rec.reason||'';
+    const f=ST.find(s=>s.name===rec.station);if(f)bkSt=f;
+  }catch(e){
+    ld.style.display='none';bd.style.display='block';
+    const fb=avail[0]||ST[0];
+    document.getElementById('rrn').textContent=fb.name;
+    document.getElementById('rrs3').textContent=fb.area+' · '+dist(fb)+' km';
+    document.getElementById('rrd').textContent=dist(fb)+' km';
+    document.getElementById('rre').textContent='~5 min';
+    document.getElementById('rrw2').textContent=fb.wait;
+    document.getElementById('rrsp').textContent=fb.speed;
+    document.getElementById('rrwhy').textContent='Nearest available '+fb.conn+' charger for your battery level.';
+    bkSt=fb;
+  }
+}
+
+function bookThis(id){bkSt=ST[id];switchTo('book');renderBook();}
+function renderBook(){
+  document.getElementById('bkn').textContent=bkSt.name;
+  document.getElementById('bks').textContent=bkSt.area+' · '+bkSt.speed+' · '+bkSt.conn;
+  document.getElementById('sstn').textContent=bkSt.name;
+  document.getElementById('sconn').textContent=bkSt.conn;
+  document.getElementById('stime').textContent=selSlot||'—';
+  const now=new Date();
+  const slots=Array.from({length:9},(_,i)=>{const m=now.getMinutes()+30*(i+1),h=(now.getHours()+Math.floor(m/60))%24,mm=m%60;return{time:`${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`,busy:bkSt.status==='busy'&&(i===0||i===2)};});
+  document.getElementById('slotg').innerHTML=slots.map(s=>`<div class="sl2 ${s.busy?'bz':'av'}${selSlot===s.time?' pk':''}" onclick="${s.busy?'':` pickSlot(this,'${s.time}')`}"><div class="slt">${s.time}</div><div class="sll">${s.busy?'Busy':'Free'}</div></div>`).join('');
+}
+function pickSlot(el,t){document.querySelectorAll('.sl2').forEach(s=>s.classList.remove('pk'));el.classList.add('pk');selSlot=t;document.getElementById('stime').textContent=t;}
+function pickDur(el,min,cost){document.querySelectorAll('.do').forEach(d=>d.classList.remove('on'));el.classList.add('on');selDur=min;selCost=cost;document.getElementById('sdur').textContent=min>=60?Math.floor(min/60)+'h '+(min%60?min%60+'min':''):min+' min';document.getElementById('scost').textContent=cost;}
+function confBook(){
+  if(!selSlot){alert('Please select a time slot first.');return;}
+  const ref='WL-BOOK-'+Math.floor(1000+Math.random()*9000);
+  document.getElementById('bkref').textContent='Booking ref: '+ref;
+  document.getElementById('bkcf').classList.add('show');
+  const b=document.getElementById('wbal'),cur=parseFloat(b.textContent.replace('₹ ','').replace(',',''));
+  b.textContent='₹ '+(cur-parseFloat(selCost.replace('₹',''))).toFixed(2);
+  document.getElementById('bkbtn').disabled=true;
+}
+function addMsg(role,text){
+  const w=document.getElementById('cmsgs'),d=document.createElement('div');
+  d.className='msg '+(role==='u'?'u':'b');
+  const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  d.innerHTML=`<div class="bbl">${role==='u'?text:(typeof marked!=='undefined'?marked.parse(text):text)}</div><div class="mt2">${t}</div>`;
+  w.appendChild(d);w.scrollTop=w.scrollHeight;
+}
+function addTyping(){const w=document.getElementById('cmsgs'),d=document.createElement('div');d.className='msg b';d.id='typing';d.innerHTML='<div class="bbl"><div class="dots"><span></span><span></span><span></span></div></div>';w.appendChild(d);w.scrollTop=w.scrollHeight;}
+function rmTyping(){const t=document.getElementById('typing');if(t)t.remove();}
+async function sendQ(text){addMsg('u',text);document.getElementById('qrs').innerHTML='';addTyping();await new Promise(r=>setTimeout(r,1200));rmTyping();addMsg('b',QRS[text]||"Let me look into that — could you share more detail?");}
+async function sendChat(){
+  const inp=document.getElementById('cin'),text=inp.value.trim();if(!text)return;
+  inp.value='';addMsg('u',text);document.getElementById('qrs').innerHTML='';addTyping();
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:500,system:"You are WattLane AI support for EV owners in Hyderabad. WattLane covers 30 real stations across Banjara Hills, Jubilee Hills, Gachibowli, Kukatpally, Kompally, Nagole, Madhapur, HITEC City, Kondapur, Miyapur, Secunderabad, Tank Bund, Attapur, Kachiguda and more. Ranges use 80% of ARAI certified range. Premium Rs 149/month. Be concise. Use markdown.",messages:[{role:'user',content:text}]})});
+    const data=await res.json();rmTyping();addMsg('b',data.content&&data.content[0]?data.content[0].text:"I'm having trouble right now. Please try again.");
+  }catch(e){rmTyping();addMsg('b',"Connection issue. Please try again or call 1800-WATTLANE.");}
+}
+function topUp(){const amts=[100,200,500,1000],amt=amts[Math.floor(Math.random()*amts.length)];const b=document.getElementById('wbal'),cur=parseFloat(b.textContent.replace('₹ ','').replace(',',''));b.textContent='₹ '+(cur+amt).toFixed(2);alert('₹'+amt+' added via UPI.\nNew balance: ₹'+(cur+amt).toFixed(2));}
+function subPrem(){document.getElementById('pbtn').textContent='✓ Premium Active — Trial Started';document.getElementById('pbtn').style.background='#085041';const d=new Date(Date.now()+7*86400000).toLocaleDateString('en-IN',{day:'numeric',month:'long'});alert('7-day free trial started!\nAll premium features unlocked.\nNext billing: '+d+' 2026.');}
+function renderTxns(){document.getElementById('txnlist').innerHTML=TXNS.map(t=>`<div class="txn"><div class="ti" style="background:${t.ico==='charge'?'#E1F5EE':'#E6F1FB'}"><i class="ti ti-${t.ico==='charge'?'bolt':'plus'}" style="font-size:14px;color:${t.ico==='charge'?'#0F6E56':'#185FA5'}"></i></div><div class="tn2"><div class="tn3">${t.name}</div><div class="td">${t.date}</div></div><div class="ta ${t.amt.startsWith('-')?'m':'p'}">${t.amt}</div></div>`).join('');}
+
+window.addEventListener('load',()=>{
+  initMap(); renderSt(); renderTxns(); renderRadar(); renderBook();
+  addMsg('b',"Hi! I'm **WattLane Support AI**.\n\nI can help with session failures, payment issues, finding chargers across all 30 Hyderabad stations, Range Radar, and bookings. What can I help with today?");
+});
+</script>
+</body>
+</html>
